@@ -7,7 +7,7 @@ import sys
 import datetime
 import pygame
 from pygame.locals import *
-
+from common import Alarm
 
 class AlarmingError(Exception):
     pass
@@ -25,6 +25,11 @@ class Alarming(object):
         self._screen = None
         self._screen_flags = pygame.NOFRAME
         self._main_time_char_map = {}
+        self._config_dir = os.path.join(os.environ["HOME"], ".config", "alarming")
+        if not os.path.isdir(self._config_dir):
+            os.makedirs(self._config_dir)
+        print "Using '{0}' as config dir".format(self._config_dir)
+        self._alarm = Alarm(self._config_dir)
 
     def _init_pygame(self):
         """Set up a few things in pygame"""
@@ -65,6 +70,10 @@ class Alarming(object):
 
         #bgnds
         self._bg = pygame.image.load("bg/zlatan.png")
+
+        #on screen icons
+        self._alarm_icon = pygame.image.load("gfx/alarm.png")
+
 
     def _bld_char_map(self, chars, font, colour):
         """util func"""
@@ -110,6 +119,8 @@ class Alarming(object):
             # self._screen.fill((0, 0, 0))
             self._screen.blit(self._bg, (0, 0))
             self._draw_time()
+
+            self._screen.blit(self._alarm_icon, (32, 250))
 
             pygame.display.update()
 
