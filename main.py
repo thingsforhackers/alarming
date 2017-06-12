@@ -5,9 +5,11 @@ This will mange display, track alarm t/o etc.
 import os
 import sys
 import datetime
+import string
+import logging
 import pygame
 from pygame.locals import *
-from common import Alarm
+import alarm
 
 class AlarmingError(Exception):
     pass
@@ -29,7 +31,8 @@ class Alarming(object):
         if not os.path.isdir(self._config_dir):
             os.makedirs(self._config_dir)
         print "Using '{0}' as config dir".format(self._config_dir)
-        self._alarm = Alarm(self._config_dir)
+        self._am = alarm.AlarmMgr(self._config_dir)
+        self._am.check_for_cfg_update()
 
     def _init_pygame(self):
         """Set up a few things in pygame"""
@@ -67,7 +70,11 @@ class Alarming(object):
         self._main_time_char_map = self._bld_char_map("0123456789: ",
                                                       self._main_time_font,
                                                       self.MAIN_TIME_COLOUR)
-
+        #Secondary font
+        self._med_font = pygame.font.Font("fonts/VeraMono.ttf", 24)
+        self._med_char_map = self._bld_char_map(string.printable,
+                                                self._med_font,
+                                                self.MAIN_TIME_COLOUR)
         #bgnds
         self._bg = pygame.image.load("bg/zlatan.png")
 
@@ -101,6 +108,18 @@ class Alarming(object):
                          [32 + (10 * 60) - (10 * ct.second), ypos + 192],
                          5)
 
+    def _draw_date(self):
+        """Draw current date"""
+        cdate = datetime.date.today()
+        suf = lambda n: "%d%s"%(n,{1:"st",2:"nd",3:"rd"}.get(n if n<20 else n%10,"th"))
+        self._draw_string(cdate.strftime("%A {0} %B %Y".format(suf(cdate.day))), self._med_char_map, 0, 0)
+
+    def _draw_alarm(self):
+        """Draw current alarm"""
+        alarm = self._am.get_next_alarm()
+        if alarm:
+            self._screen.blit(self._alarm_icon, (32, 250))
+
     def _run_loop(self):
         """Run pygame event loop"""
         print "Start loop"
@@ -118,14 +137,15 @@ class Alarming(object):
             # Update screen
             # self._screen.fill((0, 0, 0))
             self._screen.blit(self._bg, (0, 0))
+            self._draw_date()
             self._draw_time()
-
-            self._screen.blit(self._alarm_icon, (32, 250))
-
+            self._draw_alarm()
             pygame.display.update()
 
     def start(self):
         """Entry point"""
+        logging.basicConfig(filename="/tmp/alarming.log", level=logging.INFO)
+        logging.info("Alarm started")
         self._init_pygame()
         self._run_loop()
         pygame.quit()
