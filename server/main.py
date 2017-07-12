@@ -1,10 +1,12 @@
 """
 Server side of alarm project
 """
-
 from flask import Flask
 
-app = Flask(__name__)
+import common.constants as const
+
+app = Flask(const.APP_NAME,
+            static_folder=const.SERVER_STATIC_DIR)
 
 @app.route("/")
 def hello_world():
