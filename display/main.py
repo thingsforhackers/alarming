@@ -9,8 +9,8 @@ import string
 import logging
 import pygame
 from pygame.locals import *
-import common
-import alarm
+import common.constants as const
+import common.alarm as alarm
 
 
 class AlarmingError(Exception):
@@ -29,8 +29,8 @@ class Alarming(object):
         self._screen = None
         self._screen_flags = pygame.NOFRAME
         self._main_time_char_map = {}
-        if not os.path.isdir(common.CONFIG_DIR):
-            raise AlarmingError("Fatal: {0} does not exist".format(common.CONFIG_DIR))
+        if not os.path.isdir(const.CONFIG_DIR):
+            raise AlarmingError("Fatal: {0} does not exist".format(const.CONFIG_DIR))
         self._am = alarm.AlarmMgr()
         self._am.check_for_cfg_update()
 

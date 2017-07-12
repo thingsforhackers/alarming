@@ -11,7 +11,7 @@ import pytoml as toml
 import datetime
 from dateutil.relativedelta import *
 from dateutil.rrule import *
-import common
+import common.constants as const
 
 
 class AlarmMgr(object):
@@ -23,7 +23,7 @@ class AlarmMgr(object):
         """
         Setup a few things
         """
-        self._alarm_file_lock = filelock.FileLock(common.ALARM_LOCK_FILE)
+        self._alarm_file_lock = filelock.FileLock(const.ALARM_LOCK_FILE)
         self._cfg = {}
         self._next_alarm = None
 
@@ -95,7 +95,7 @@ class AlarmMgr(object):
         """
         try:
             with self._alarm_file_lock.acquire(timeout=5):
-                with open(common.ALARM_FILE, 'r') as f:
+                with open(const.ALARM_FILE, 'r') as f:
                     new_cfg = toml.load(f)
                     new_rev = new_cfg.get('revision', 1)
                     old_rev = self._cfg.get('revision', 0)
