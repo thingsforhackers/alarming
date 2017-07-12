@@ -67,20 +67,20 @@ class Alarming(object):
         pygame.display.update()
 
         #Fonts for main time
-        self._main_time_font = pygame.font.Font("fonts/VeraMono-Bold.ttf", 192)
+        self._main_time_font = pygame.font.Font("assets/fonts/VeraMono-Bold.ttf", 192)
         self._main_time_char_map = self._bld_char_map("0123456789: ",
                                                       self._main_time_font,
                                                       self.MAIN_TIME_COLOUR)
         #Secondary font
-        self._med_font = pygame.font.Font("fonts/VeraMono.ttf", 24)
+        self._med_font = pygame.font.Font("assets/fonts/VeraMono.ttf", 24)
         self._med_char_map = self._bld_char_map(string.printable,
                                                 self._med_font,
                                                 self.MAIN_TIME_COLOUR)
         #bgnds
-        self._bg = pygame.image.load("bg/zlatan.png")
+        self._bg = pygame.image.load("assets/bg/zlatan.png")
 
         #on screen icons
-        self._alarm_icon = pygame.image.load("gfx/alarm.png")
+        self._alarm_icon = pygame.image.load("assets/gfx/alarm.png")
 
 
     def _bld_char_map(self, chars, font, colour):
