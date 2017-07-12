@@ -11,18 +11,19 @@ import pytoml as toml
 import datetime
 from dateutil.relativedelta import *
 from dateutil.rrule import *
+import common
+
 
 class AlarmMgr(object):
     """
     Manage alarms
     """
 
-    def __init__(self, cfg_base_dir):
+    def __init__(self):
         """
         Setup a few things
         """
-        self._alarm_file = os.path.join(cfg_base_dir, "alarms.toml")
-        self._alarm_file_lock = filelock.FileLock(os.path.join(cfg_base_dir, "alarms.toml.lock"))
+        self._alarm_file_lock = filelock.FileLock(common.ALARM_LOCK_FILE)
         self._cfg = {}
         self._next_alarm = None
 
@@ -52,13 +53,13 @@ class AlarmMgr(object):
         else:
             wd_alarm = now+relativedelta(year=2030) #Move it well ahead of time
 
-        # now get next weekend alarm
+        # now get weekend alarm
         we_parts = self._cfg.get('weekend', '-:00:00').split(':')
         we_enabled = True if we_parts[0] == '+' else False
         if we_enabled:
             we_alarm = now+relativedelta(hour=int(we_parts[1]), minute=int(we_parts[2]))
             if we_alarm < now or is_week_day == True:
-                we_alarm = rrule(DAILY, byweekday=(SA, SU), dtstart=we_alarm)[1]
+                we_alarm = rrule(DAILY, byweekday=(SA, SU), dtstart=we_alarm)[0]
         else:
             we_alarm = now+relativedelta(years=2030)
 
@@ -73,7 +74,7 @@ class AlarmMgr(object):
         """
         try:
             with self._alarm_file_lock.acquire(timeout=10):
-                with open(self._alarm_file, 'w') as f:
+                with open(common.ALARM_FILE, 'w') as f:
                     self._cfg['revision'] = int(math.floor(time.time()))
                     toml.dump(self._cfg, f)
         except filelock.Timeout:
@@ -94,13 +95,15 @@ class AlarmMgr(object):
         """
         try:
             with self._alarm_file_lock.acquire(timeout=5):
-                with open(self._alarm_file, 'r') as f:
+                with open(common.ALARM_FILE, 'r') as f:
                     new_cfg = toml.load(f)
                     new_rev = new_cfg.get('revision', 1)
                     old_rev = self._cfg.get('revision', 0)
                     if new_rev > old_rev:
                         logging.info("Update cfg old rev:{0}, new rev:{1}".format(old_rev, new_rev))
                         self._update_cfg(new_cfg)
+        except FileNotFoundError:
+            pass
         except filelock.Timeout:
             logging.error("Timeout reading cfg file")
 
@@ -109,16 +112,13 @@ if __name__ == '__main__':
     if 0:
         logging.basicConfig(filename="/tmp/alarm.log", level=logging.INFO)
         logging.info("Alarm started")
-        config_dir = os.path.join(os.environ["HOME"], ".config", "alarming")
-        am = AlarmMgr(config_dir)
+        am = AlarmMgr()
         am.check_for_cfg_update()
         am._save_cfg()
 
-    am = AlarmMgr("/tmp/alarm")
+    am = AlarmMgr()
 
     cfg = {
         "weekday" : "-:06:30",
     }
-
-
 

@@ -9,7 +9,9 @@ import string
 import logging
 import pygame
 from pygame.locals import *
+import common
 import alarm
+
 
 class AlarmingError(Exception):
     pass
@@ -27,11 +29,9 @@ class Alarming(object):
         self._screen = None
         self._screen_flags = pygame.NOFRAME
         self._main_time_char_map = {}
-        self._config_dir = os.path.join(os.environ["HOME"], ".config", "alarming")
-        if not os.path.isdir(self._config_dir):
-            os.makedirs(self._config_dir)
-        print "Using '{0}' as config dir".format(self._config_dir)
-        self._am = alarm.AlarmMgr(self._config_dir)
+        if not os.path.isdir(common.CONFIG_DIR):
+            raise AlarmingError("Fatal: {0} does not exist".format(common.CONFIG_DIR))
+        self._am = alarm.AlarmMgr()
         self._am.check_for_cfg_update()
 
     def _init_pygame(self):
@@ -39,18 +39,19 @@ class Alarming(object):
 
         disp_no = os.getenv("DISPLAY")
         if disp_no:
-            print "Using DISPLAY={0}".format(disp_no)
+            print("Using DISPLAY={0}".format(disp_no))
             try:
                 pygame.display.init()
             except pygame.error as pyg_error:
                 raise AlarmingError("Failed to init display driver: {0}".format(pyg_error))
             self._screen_flags |= pygame.NOFRAME
         else:
-            print "Using frame buffer"
+            print("Using frame buffer")
             # Assume running console mode on piZero
             os.putenv('SDL_VIDEODRIVER', 'fbcon')
             os.putenv('SDL_FBDEV', '/dev/fb0')
             os.putenv('SDL_NOMOUSE', '1')
+            os.putenv('SDL_DEBUG', '1')
             try:
                 pygame.display.init()
             except pygame.error as pyg_error:
@@ -58,7 +59,7 @@ class Alarming(object):
             self._screen_size = (pygame.display.Info().current_w,
                                  pygame.display.Info().current_h)
             self._screen_flags |= pygame.FULLSCREEN
-        print "Screen Size: {0}".format(self._screen_size)
+        print("Screen Size: {0}".format(self._screen_size))
         self._screen = pygame.display.set_mode(self._screen_size,
                                                self._screen_flags)
         pygame.font.init()
@@ -116,13 +117,15 @@ class Alarming(object):
 
     def _draw_alarm(self):
         """Draw current alarm"""
+        self._am._update_cfg(self._am._cfg)
         alarm = self._am.get_next_alarm()
         if alarm:
             self._screen.blit(self._alarm_icon, (32, 250))
+            self._draw_string(alarm.strftime("%a @ %H:%M"), self._med_char_map, 32, 310)
 
     def _run_loop(self):
         """Run pygame event loop"""
-        print "Start loop"
+        print("Start loop")
         run = True
         while run:
 
