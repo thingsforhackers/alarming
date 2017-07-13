@@ -11,6 +11,7 @@ import pygame
 from pygame.locals import *
 import common.constants as const
 import common.alarm as alarm
+import common.input_mgr as input_mgr
 
 
 class AlarmingError(Exception):
@@ -39,6 +40,7 @@ class Alarming(object):
         self._am = alarm.AlarmMgr()
         self._am.check_for_cfg_update()
         self._mode = self.MODE_NORMAL
+        self._input = input_mgr.InputMgr()
 
     def _init_pygame(self):
         """Set up a few things in pygame"""
@@ -135,7 +137,6 @@ class Alarming(object):
         """Run pygame event loop"""
         print("Start loop")
         run = True
-        alarm_cancel = False
         while run:
 
             #Process events
@@ -143,8 +144,6 @@ class Alarming(object):
                 if event.type == pygame.locals.KEYUP:
                     if event.key == pygame.locals.K_q:
                         run = False
-                    elif event.key == pygame.locals.K_c:
-                        alarm_cancel = True
                 if event.type == pygame.locals.QUIT:
                     run = False
 
@@ -160,7 +159,7 @@ class Alarming(object):
                     self._alarm_snd.play(loops=-1)
             else:
                 self._screen.fill(self.CLEAR_COLOUR)
-                if alarm_cancel:
+                if self._input.is_cancel_pressed():
                     self._alarm_snd.stop()
                     self._mode = self.MODE_NORMAL
                     self._am._update_cfg()
