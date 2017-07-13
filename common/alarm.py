@@ -18,6 +18,7 @@ class AlarmMgr(object):
     """
     Manage alarms
     """
+    FILE_LOCK_TO = 5 # In seconds
 
     def __init__(self):
         """
@@ -28,19 +29,23 @@ class AlarmMgr(object):
         self._next_alarm = None
 
 
-    def _update_cfg(self, new_cfg, now=None):
+    def _update_cfg(self, new_cfg=None, now=None):
         """
         Update internal state based on new cfg file
         """
+        if new_cfg is None:
+            new_cfg = self._cfg
+
         self._cfg = new_cfg
 
+        # Now check for a new alarm
         if now is None:
             now = datetime.datetime.now()
             now = datetime.datetime(year=now.year,
                                     month=now.month,
                                     day=now.day,
                                     hour=now.hour,
-                                    minute=now.minute) #Drop seconds
+                                    minute=now.minute+1) #Drop seconds
         is_week_day = now.weekday() < 5
 
         # Now get weekday alarm
@@ -73,7 +78,7 @@ class AlarmMgr(object):
         Save internal state to file
         """
         try:
-            with self._alarm_file_lock.acquire(timeout=10):
+            with self._alarm_file_lock.acquire(timeout=self.FILE_LOCK_TO):
                 with open(common.ALARM_FILE, 'w') as f:
                     self._cfg['revision'] = int(math.floor(time.time()))
                     toml.dump(self._cfg, f)
@@ -89,12 +94,26 @@ class AlarmMgr(object):
         else:
             return self._next_alarm
 
+    def has_alarm_fired(self):
+        """Check to see if an alarm has fired"""
+        alarm = self.get_next_alarm()
+        if alarm:
+            now = datetime.datetime.now()
+            if alarm <= now:
+                self._next_alarm = None
+                print(now)
+                return True
+            else:
+                return False
+        else:
+            return False
+
     def check_for_cfg_update(self):
         """
         Check if an update of the internal alarm is needed
         """
         try:
-            with self._alarm_file_lock.acquire(timeout=5):
+            with self._alarm_file_lock.acquire(timeout=self.FILE_LOCK_TO):
                 with open(const.ALARM_FILE, 'r') as f:
                     new_cfg = toml.load(f)
                     new_rev = new_cfg.get('revision', 1)
@@ -106,19 +125,3 @@ class AlarmMgr(object):
             pass
         except filelock.Timeout:
             logging.error("Timeout reading cfg file")
-
-
-if __name__ == '__main__':
-    if 0:
-        logging.basicConfig(filename="/tmp/alarm.log", level=logging.INFO)
-        logging.info("Alarm started")
-        am = AlarmMgr()
-        am.check_for_cfg_update()
-        am._save_cfg()
-
-    am = AlarmMgr()
-
-    cfg = {
-        "weekday" : "-:06:30",
-    }
-

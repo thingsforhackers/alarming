@@ -22,6 +22,11 @@ class Alarming(object):
     Main Alarm module
     """
     MAIN_TIME_COLOUR = (255, 255, 255)
+    CLEAR_COLOUR = (0, 0, 0)
+
+    MODE_NORMAL = "normal"
+    MODE_ALARM = "alarm"
+
 
     def __init__(self):
         """ """
@@ -33,6 +38,7 @@ class Alarming(object):
             raise AlarmingError("Fatal: {0} does not exist".format(const.CONFIG_DIR))
         self._am = alarm.AlarmMgr()
         self._am.check_for_cfg_update()
+        self._mode = self.MODE_NORMAL
 
     def _init_pygame(self):
         """Set up a few things in pygame"""
@@ -62,6 +68,8 @@ class Alarming(object):
         print("Screen Size: {0}".format(self._screen_size))
         self._screen = pygame.display.set_mode(self._screen_size,
                                                self._screen_flags)
+        pygame.mixer.pre_init(44100, -16, 2, 2048) # setup mixer to avoid sound lag
+        pygame.init()
         pygame.font.init()
         pygame.mouse.set_visible(False)
         pygame.display.update()
@@ -82,6 +90,7 @@ class Alarming(object):
         #on screen icons
         self._alarm_icon = pygame.image.load("assets/gfx/alarm.png")
 
+        self._alarm_snd = pygame.mixer.Sound("assets/audio/Alarm-tone.ogg")
 
     def _bld_char_map(self, chars, font, colour):
         """util func"""
@@ -117,7 +126,6 @@ class Alarming(object):
 
     def _draw_alarm(self):
         """Draw current alarm"""
-        self._am._update_cfg(self._am._cfg)
         alarm = self._am.get_next_alarm()
         if alarm:
             self._screen.blit(self._alarm_icon, (32, 250))
@@ -127,6 +135,7 @@ class Alarming(object):
         """Run pygame event loop"""
         print("Start loop")
         run = True
+        alarm_cancel = False
         while run:
 
             #Process events
@@ -134,15 +143,29 @@ class Alarming(object):
                 if event.type == pygame.locals.KEYUP:
                     if event.key == pygame.locals.K_q:
                         run = False
+                    elif event.key == pygame.locals.K_c:
+                        alarm_cancel = True
                 if event.type == pygame.locals.QUIT:
                     run = False
 
-            # Update screen
-            # self._screen.fill((0, 0, 0))
-            self._screen.blit(self._bg, (0, 0))
-            self._draw_date()
-            self._draw_time()
-            self._draw_alarm()
+            if self._mode == self.MODE_NORMAL:
+                self._screen.blit(self._bg, (0, 0))
+                self._draw_date()
+                self._draw_time()
+                self._draw_alarm()
+                if self._am.has_alarm_fired():
+                    print("Alarm has fired!!!")
+                    self._mode = self.MODE_ALARM
+                    alarm_cancel = False
+                    self._alarm_snd.play(loops=-1)
+            else:
+                self._screen.fill(self.CLEAR_COLOUR)
+                if alarm_cancel:
+                    self._alarm_snd.stop()
+                    self._mode = self.MODE_NORMAL
+                    self._am._update_cfg()
+
+
             pygame.display.update()
 
     def start(self):
