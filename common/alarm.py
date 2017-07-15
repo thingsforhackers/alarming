@@ -19,10 +19,21 @@ class AlarmMgr(object):
     Manage alarms
     """
 
+    # Enumerate all alarm modes
+    ALARM_MODE_ANY = "any"
+    ALARM_MODE_WE_ONLY = "weekend"
+    ALARM_MODE_WD_ONLY = "weekday"
+    ALARM_MODE_NONE = "none"
+
     def __init__(self):
         """
         Setup a few things
         """
+        self._modes = [self.ALARM_MODE_ANY,
+                       self.ALARM_MODE_WE_ONLY,
+                       self.ALARM_MODE_WD_ONLY,
+                       self.ALARM_MODE_NONE]
+        self._mode_idx = 0
         self._cfg = {}
         self._next_alarm = None
         self._last_time = None
@@ -38,6 +49,33 @@ class AlarmMgr(object):
                 self._cfg = toml.load(f)
         except FileNotFoundError:
             pass
+
+    def next_mode(self):
+        """Move alarm on to next mode"""
+        self._mode_idx += 1
+        if self._mode_idx == len(self._modes):
+            self._mode_idx = 0
+
+        current_mode = self._modes[self._mode_idx]
+
+        if current_mode == self.ALARM_MODE_ANY:
+            enable_we = True
+            enable_wd = True
+        elif current_mode == self.ALARM_MODE_WE_ONLY:
+            enable_we = True
+            enable_wd = False
+        elif current_mode == self.ALARM_MODE_WD_ONLY:
+            enable_we = False
+            enable_wd = True
+        elif current_mode == self.ALARM_MODE_NONE:
+            enable_we = False
+            enable_wd = False
+
+        self._cfg["weekday"]["enabled"] = enable_wd
+        self._cfg["weekend"]["enabled"] = enable_we
+
+        self._save_cfg()
+        self.parse_cfg()
 
     def parse_cfg(self, now=None):
         """
@@ -69,7 +107,7 @@ class AlarmMgr(object):
             hh, mm = weekday.get("time", "00:00").split(":")
             wd_alarm = now+relativedelta(hour=int(hh), minute=int(mm))
             if wd_alarm <= now or is_week_day == False:
-                wd_alarm = rrule(DAILY, byweekday=(MO, TU, WE, TH, FR), dtstart=wd_alarm)[1]
+                wd_alarm = rrule(DAILY, byweekday=(MO, TU, WE, TH, FR), dtstart=wd_alarm)[1 if is_week_day else 0]
         else:
             wd_alarm = now+relativedelta(year=2030) #Move it well ahead of time
 
@@ -80,7 +118,7 @@ class AlarmMgr(object):
             hh, mm = weekend.get("time", "00:00").split(":")
             we_alarm = now+relativedelta(hour=int(hh), minute=int(mm))
             if we_alarm <= now or is_week_day == True:
-                we_alarm = rrule(DAILY, byweekday=(SA, SU), dtstart=we_alarm)[1]
+                we_alarm = rrule(DAILY, byweekday=(SA, SU), dtstart=we_alarm)[1 if not is_week_day else 0]
         else:
             we_alarm = now+relativedelta(years=2030)
 
@@ -93,13 +131,9 @@ class AlarmMgr(object):
         """
         Save internal state to file
         """
-        try:
-            with self._alarm_file_lock.acquire(timeout=self.FILE_LOCK_TO):
-                with open(common.ALARM_FILE, 'w') as f:
-                    self._cfg['revision'] = int(math.floor(time.time()))
-                    toml.dump(self._cfg, f)
-        except filelock.Timeout:
-            logging.error("Timeout writing cfg file")
+        with open(const.ALARM_FILE, 'w') as f:
+            self._cfg['revision'] = int(math.floor(time.time()))
+            toml.dump(self._cfg, f)
 
     def get_next_alarm(self):
         """

@@ -137,6 +137,8 @@ class Alarming(object):
         print("Start loop")
         run = True
         while run:
+            self._input.update()
+
             #Process events
             for event in pygame.event.get():
                 if event.type == pygame.locals.KEYUP:
@@ -150,8 +152,9 @@ class Alarming(object):
                 self._draw_date()
                 self._draw_time()
                 self._draw_alarm()
+                if self._input.is_toggle_pressed():
+                    self._am.next_mode()
                 if self._am.has_alarm_fired():
-                    print("Alarm has fired!!!")
                     self._mode = self.MODE_ALARM
                     self._alarm_snd.play(loops=-1)
             else:
@@ -162,6 +165,10 @@ class Alarming(object):
                     self._am.parse_cfg()
 
             pygame.display.update()
+
+            topic, payload = self._mqtt_if.get_msg()
+            if topic:
+                print(topic, payload)
 
     def start(self):
         """Entry point"""

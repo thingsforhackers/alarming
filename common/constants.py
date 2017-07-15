@@ -17,5 +17,6 @@ SERVER_STATIC_DIR = os.environ.get("ALARM_STATIC_DIR",
 MQTT_CLIENT_ID = "id-cej-alarm"
 
 MQTT_TOPIC_TEST = "cej-alarm/test"
+MQTT_TOPIC_UPDATE = "cej-alarm/update"
 
 MQTT_BROKER = "192.168.1.151"
