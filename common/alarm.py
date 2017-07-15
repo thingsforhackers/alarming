@@ -48,20 +48,22 @@ class AlarmMgr(object):
         is_week_day = now.weekday() < 5
 
         # Now get weekday alarm
-        wd_parts = self._cfg.get('weekday', '-:00:00').split(':')
-        wd_enabled = True if wd_parts[0] == '+' else False
+        weekday = self._cfg.get("weekday", {})
+        wd_enabled = weekday.get("enabled", False)
         if wd_enabled:
-            wd_alarm = now+relativedelta(hour=int(wd_parts[1]), minute=int(wd_parts[2]))
+            hh, mm = weekday.get("time", "00:00").split(":")
+            wd_alarm = now+relativedelta(hour=int(hh), minute=int(mm))
             if wd_alarm < now or is_week_day == False:
                 wd_alarm = rrule(DAILY, byweekday=(MO, TU, WE, TH, FR), dtstart=wd_alarm)[1]
         else:
             wd_alarm = now+relativedelta(year=2030) #Move it well ahead of time
 
         # now get weekend alarm
-        we_parts = self._cfg.get('weekend', '-:00:00').split(':')
-        we_enabled = True if we_parts[0] == '+' else False
+        weekend = self._cfg.get("weekend", {})
+        we_enabled = weekend.get("enabled", False)
         if we_enabled:
-            we_alarm = now+relativedelta(hour=int(we_parts[1]), minute=int(we_parts[2]))
+            hh, mm = weekend.get("time", "00:00").split(":")
+            we_alarm = now+relativedelta(hour=int(hh), minute=int(mm))
             if we_alarm < now or is_week_day == True:
                 we_alarm = rrule(DAILY, byweekday=(SA, SU), dtstart=we_alarm)[0]
         else:

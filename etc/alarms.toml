@@ -1,0 +1,12 @@
+# Example toml file
+
+# Weekend alarm
+[weekend]
+enabled = true
+time = "15:16"
+
+# Weekday alarm
+[weekday]
+enabled = false
+time = "08:30"
+
