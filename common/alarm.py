@@ -58,7 +58,6 @@ class AlarmMgr(object):
                                     day=now.day,
                                     hour=now.hour,
                                     minute=now.minute) #Drop seconds
-            self._last_time = now
         else:
             assert isinstance(now, datetime.datetime)
         is_week_day = now.weekday() < 5
@@ -69,12 +68,10 @@ class AlarmMgr(object):
         if wd_enabled:
             hh, mm = weekday.get("time", "00:00").split(":")
             wd_alarm = now+relativedelta(hour=int(hh), minute=int(mm))
-            print("wd_alarm1", wd_alarm)
-            if wd_alarm < now or is_week_day == False:
+            if wd_alarm <= now or is_week_day == False:
                 wd_alarm = rrule(DAILY, byweekday=(MO, TU, WE, TH, FR), dtstart=wd_alarm)[1]
         else:
             wd_alarm = now+relativedelta(year=2030) #Move it well ahead of time
-        print("wd_alarm2", wd_alarm)
 
         # now get weekend alarm
         weekend = self._cfg.get("weekend", {})
@@ -82,12 +79,10 @@ class AlarmMgr(object):
         if we_enabled:
             hh, mm = weekend.get("time", "00:00").split(":")
             we_alarm = now+relativedelta(hour=int(hh), minute=int(mm))
-            print("we_alarm1", we_alarm)
-            if we_alarm < now or is_week_day == True:
+            if we_alarm <= now or is_week_day == True:
                 we_alarm = rrule(DAILY, byweekday=(SA, SU), dtstart=we_alarm)[1]
         else:
             we_alarm = now+relativedelta(years=2030)
-        print("we_alarm2", we_alarm)
 
         if we_alarm < wd_alarm:
             self._next_alarm = we_alarm
@@ -127,7 +122,7 @@ class AlarmMgr(object):
                                         day=now.day,
                                         hour=now.hour,
                                         minute=now.minute) #Drop seconds
-            if now >= alarm and self._last_time < now:
+            if now >= alarm and self._last_time < alarm:
                 fired = True
             self._last_time = now
         return fired
