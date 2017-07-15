@@ -12,6 +12,7 @@ from pygame.locals import *
 import common.constants as const
 import common.alarm as alarm
 import common.input_mgr as input_mgr
+import common.mqtt_if as mqtt_if
 
 
 class AlarmingError(Exception):
@@ -28,7 +29,6 @@ class Alarming(object):
     MODE_NORMAL = "normal"
     MODE_ALARM = "alarm"
 
-
     def __init__(self):
         """ """
         self._screen_size = (656, 416) #Match frame buffer
@@ -38,9 +38,9 @@ class Alarming(object):
         if not os.path.isdir(const.CONFIG_DIR):
             raise AlarmingError("Fatal: {0} does not exist".format(const.CONFIG_DIR))
         self._am = alarm.AlarmMgr()
-        self._am.check_for_cfg_update()
         self._mode = self.MODE_NORMAL
         self._input = input_mgr.InputMgr()
+        self._mqtt_if = mqtt_if.MQTTInterface(my_id=const.MQTT_CLIENT_ID)
 
     def _init_pygame(self):
         """Set up a few things in pygame"""
@@ -59,7 +59,6 @@ class Alarming(object):
             os.putenv('SDL_VIDEODRIVER', 'fbcon')
             os.putenv('SDL_FBDEV', '/dev/fb0')
             os.putenv('SDL_NOMOUSE', '1')
-            os.putenv('SDL_DEBUG', '1')
             try:
                 pygame.display.init()
             except pygame.error as pyg_error:
@@ -172,7 +171,9 @@ class Alarming(object):
         logging.basicConfig(filename="/tmp/alarming.log", level=logging.INFO)
         logging.info("Alarm started")
         self._init_pygame()
+        self._mqtt_if.start()
         self._run_loop()
+        self._mqtt_if.stop()
         pygame.quit()
 
 if __name__ == "__main__":

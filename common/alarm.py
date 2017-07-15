@@ -6,9 +6,9 @@ import os
 import logging
 import time
 import math
-import filelock
 import pytoml as toml
 import datetime
+import pprint
 from dateutil.relativedelta import *
 from dateutil.rrule import *
 import common.constants as const
@@ -18,25 +18,24 @@ class AlarmMgr(object):
     """
     Manage alarms
     """
-    FILE_LOCK_TO = 5 # In seconds
 
     def __init__(self):
         """
         Setup a few things
         """
-        self._alarm_file_lock = filelock.FileLock(const.ALARM_LOCK_FILE)
         self._cfg = {}
         self._next_alarm = None
+        self.load_cfg()
 
-
-    def _update_cfg(self, new_cfg=None, now=None):
+    def load_cfg(self, now=None):
         """
         Update internal state based on new cfg file
         """
-        if new_cfg is None:
-            new_cfg = self._cfg
-
-        self._cfg = new_cfg
+        try:
+            with open(const.ALARM_FILE, 'r') as f:
+                self._cfg = toml.load(f)
+        except FileNotFoundError:
+            return
 
         # Now check for a new alarm
         if now is None:
@@ -72,6 +71,7 @@ class AlarmMgr(object):
             self._next_alarm = we_alarm
         else:
             self._next_alarm = wd_alarm
+        pprint.pprint(self._cfg)
 
     def _save_cfg(self):
         """
@@ -107,21 +107,3 @@ class AlarmMgr(object):
                 return False
         else:
             return False
-
-    def check_for_cfg_update(self):
-        """
-        Check if an update of the internal alarm is needed
-        """
-        try:
-            with self._alarm_file_lock.acquire(timeout=self.FILE_LOCK_TO):
-                with open(const.ALARM_FILE, 'r') as f:
-                    new_cfg = toml.load(f)
-                    new_rev = new_cfg.get('revision', 1)
-                    old_rev = self._cfg.get('revision', 0)
-                    if new_rev > old_rev:
-                        logging.info("Update cfg old rev:{0}, new rev:{1}".format(old_rev, new_rev))
-                        self._update_cfg(new_cfg)
-        except FileNotFoundError:
-            pass
-        except filelock.Timeout:
-            logging.error("Timeout reading cfg file")
