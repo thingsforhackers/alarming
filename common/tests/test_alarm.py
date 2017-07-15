@@ -1,9 +1,9 @@
 """
 Unit test Alarm module
 """
-
+import datetime
 import unittest
-import alarm
+import common.alarm as alarm
 
 
 class TestAlarm(unittest.TestCase):
@@ -11,18 +11,21 @@ class TestAlarm(unittest.TestCase):
     Tests for Alarm module
     """
 
-    def test1(self):
+    def _test_init(self):
         """
+        Test basic init
         """
-        am = alarm.AlarmMgr("/tmp")
+        am = alarm.AlarmMgr()
+        self.assertIsNotNone(am)
 
-        cfg = {
-            'weekend' : '+:08:47',
-            'weekday' : '+:06:45',
-        }
-        am._update_cfg(cfg)
-        print am._next_alarm
 
+    def test_alarm_fired(self):
+        """ Simple """
+        am = alarm.AlarmMgr()
+
+        now = datetime.datetime.now()
+
+        print(now)
 
 if __name__ == '__main__':
     unittest.main()

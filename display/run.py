@@ -137,7 +137,6 @@ class Alarming(object):
         print("Start loop")
         run = True
         while run:
-
             #Process events
             for event in pygame.event.get():
                 if event.type == pygame.locals.KEYUP:
@@ -154,15 +153,13 @@ class Alarming(object):
                 if self._am.has_alarm_fired():
                     print("Alarm has fired!!!")
                     self._mode = self.MODE_ALARM
-                    alarm_cancel = False
                     self._alarm_snd.play(loops=-1)
             else:
                 self._screen.fill(self.CLEAR_COLOUR)
                 if self._input.is_cancel_pressed():
                     self._alarm_snd.stop()
                     self._mode = self.MODE_NORMAL
-                    self._am._update_cfg()
-
+                    self._am.parse_cfg()
 
             pygame.display.update()
 
