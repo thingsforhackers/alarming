@@ -36,6 +36,7 @@ class AlarmMgr(object):
         self._mode_idx = 0
         self._cfg = {}
         self._next_alarm = None
+        self._enabled = True #Global
         self._last_time = None
         self.load_cfg()
         self.parse_cfg()
@@ -88,6 +89,8 @@ class AlarmMgr(object):
         if not len(self._cfg):
             return
 
+        self._enabled = self._cfg.get("enabled", True)
+
         # Now check for a new alarm
         if now is None:
             now = datetime.datetime.now()
@@ -128,18 +131,33 @@ class AlarmMgr(object):
             self._next_alarm = wd_alarm
 
     def _save_cfg(self):
-        """
-        Save internal state to file
-        """
+        """ Save internal state to file """
         with open(const.ALARM_FILE, 'w') as f:
             self._cfg['revision'] = int(math.floor(time.time()))
             toml.dump(self._cfg, f)
 
+    def update(self, update_info):
+        """ handle update alarm requests """
+        # @TODO - Add better (some) validation
+        for key, value in update_info.items():
+            print(key, value)
+            alarm = self._cfg.get(key, {})
+            if len(alarm) == 0:
+                self._cfg[key] = alarm
+            alarm["enabled"] = value["enabled"]
+            alarm["time"] = value["time"]
+        self.parse_cfg()
+
+    def set_enabled(self, enabled):
+        """ """
+        flag = enabled.decode("utf-8")
+        self._cfg["enabled"] = True if flag.lower() == "true" else False
+        print(self._cfg["enabled"])
+        self.parse_cfg()
+
     def get_next_alarm(self):
-        """
-        Get next alarm that will fire
-        """
-        if self._next_alarm is None or int(self._next_alarm.year) == 2030:
+        """ Get next alarm that will fire """
+        if not self._enabled or self._next_alarm is None or int(self._next_alarm.year) == 2030:
             return None
         else:
             return self._next_alarm

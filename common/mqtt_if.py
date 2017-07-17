@@ -10,43 +10,43 @@ class MQTTInterface(mqtt.Client):
     """
     """
 
-    def __init__(self, my_id):
-        """
-        Set a few things up
-        """
+    def __init__(self, my_id, topics):
+        """ Set a few things up """
+        assert(len(topics))
         super(MQTTInterface, self).__init__(client_id=my_id, clean_session=True)
 
-        self._msg_q = []
+        self._msg_queues = {}
         self._msg_q_lock = threading.Lock()
 
-    def _add_msg_to_q(self, msg, payload):
+        self.connect(const.MQTT_BROKER)
+        for topic in topics:
+            self.subscribe(topic)
+
+    def _add_msg_to_q(self, topic, payload):
         """Add msg and payload to q"""
         with self._msg_q_lock:
-            self._msg_q.append((msg, payload))
+            queue = self._msg_queues.get(topic, [])
+            if len(queue) == 0:
+                self._msg_queues[topic] = queue
+            queue.append(payload)
 
-    def get_msg(self):
+    def get_msg(self, topic):
         """Return next message (if any) from q"""
         with self._msg_q_lock:
-            if len(self._msg_q):
-                return self._msg_q.pop(0)
-        return None, None
+            queue = self._msg_queues.get(topic, [])
+            if len(queue):
+                return queue.pop(0)
+        return None
 
-    def _on_msg_update(self, mqttc, obj, msg):
-        """ Handle msg update"""
-        self._add_msg_to_q(msg.topic.split("/")[1:], msg.payload)
+    def on_message(self, mqttc, obj, msg):
+        """ """
+        self._add_msg_to_q(msg.topic, msg.payload)
 
     def start(self):
-        """
-        Start everything up
-        """
-        self.connect(const.MQTT_BROKER)
-        self.subscribe(const.MQTT_TOPIC_UPDATE)
-        self.message_callback_add(const.MQTT_TOPIC_UPDATE, self._on_msg_update)
+        """ Start everything up """
         self.loop_start()
 
     def stop(self):
-        """
-        Stop everything
-        """
+        """ Stop everything """
         self.loop_stop()
 

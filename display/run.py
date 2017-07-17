@@ -8,6 +8,7 @@ import datetime
 import string
 import logging
 import pygame
+import json
 from pygame.locals import *
 import common.constants as const
 import common.alarm as alarm
@@ -29,6 +30,10 @@ class Alarming(object):
     MODE_NORMAL = "normal"
     MODE_ALARM = "alarm"
 
+    TOPICS = [const.MQTT_TOPIC_UPDATE_ALARM,
+              const.MQTT_TOPIC_CYCLE_ALARMS,
+              const.MQTT_TOPIC_ENABLE_ALARMS]
+
     def __init__(self):
         """ """
         self._screen_size = (656, 416) #Match frame buffer
@@ -40,7 +45,7 @@ class Alarming(object):
         self._am = alarm.AlarmMgr()
         self._mode = self.MODE_NORMAL
         self._input = input_mgr.InputMgr()
-        self._mqtt_if = mqtt_if.MQTTInterface(my_id=const.MQTT_CLIENT_ID)
+        self._mqtt_if = mqtt_if.MQTTInterface(const.MQTT_CLIENT_ID, self.TOPICS)
 
     def _init_pygame(self):
         """Set up a few things in pygame"""
@@ -132,11 +137,33 @@ class Alarming(object):
             self._screen.blit(self._alarm_icon, (32, 250))
             self._draw_string(alarm.strftime("%a @ %H:%M"), self._med_char_map, 32, 310)
 
+    def _handle_mqtt_updates(self):
+        """Handle any received mqtt messages"""
+        # Check for alarm updates
+        raw_payload = self._mqtt_if.get_msg(const.MQTT_TOPIC_UPDATE_ALARM)
+        if raw_payload:
+            # update payload is a json doc
+            try:
+                update_info = json.loads(raw_payload)
+                self._am.update(update_info)
+            except json.decoder.JSONDecodeError:
+                print("Ignoring invalid payload for {0}. Got '{1}'".format(const.MQTT_TOPIC_UPDATE_ALARM, raw_payload))
+        # Check for alarm mode cycle
+        raw_payload = self._mqtt_if.get_msg(const.MQTT_TOPIC_CYCLE_ALARMS)
+        if raw_payload:
+            self._am.next_mode()
+        # Check for alarm disable
+        raw_payload = self._mqtt_if.get_msg(const.MQTT_TOPIC_ENABLE_ALARMS)
+        if raw_payload:
+            self._am.set_enabled(raw_payload)
+
+
     def _run_loop(self):
         """Run pygame event loop"""
         print("Start loop")
         run = True
         while run:
+            self._handle_mqtt_updates()
             self._input.update()
 
             #Process events
@@ -166,9 +193,6 @@ class Alarming(object):
 
             pygame.display.update()
 
-            topic, payload = self._mqtt_if.get_msg()
-            if topic:
-                print(topic, payload)
 
     def start(self):
         """Entry point"""

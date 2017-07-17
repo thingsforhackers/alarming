@@ -7,7 +7,7 @@ import common.constants as const
 import json
 
 
-msg = {"weekend" :  { "enabled" : False, "time" : "19:45" } }
+msg = {"weekday" :  { "enabled" : True, "time" : "20:00" } }
 
-publish.single(const.MQTT_TOPIC_UPDATE, json.dumps(msg), hostname=const.MQTT_BROKER)
+publish.single(const.MQTT_TOPIC_UPDATE_ALARM, json.dumps(msg), hostname=const.MQTT_BROKER)
 
