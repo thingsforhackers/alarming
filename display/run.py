@@ -32,7 +32,8 @@ class Alarming(object):
 
     TOPICS = [const.MQTT_TOPIC_UPDATE_ALARM,
               const.MQTT_TOPIC_CYCLE_ALARMS,
-              const.MQTT_TOPIC_ENABLE_ALARMS]
+              const.MQTT_TOPIC_ENABLE_ALARMS,
+              const.MQTT_TOPIC_SET_ALARM]
 
     def __init__(self):
         """ """
@@ -156,7 +157,10 @@ class Alarming(object):
         raw_payload = self._mqtt_if.get_msg(const.MQTT_TOPIC_ENABLE_ALARMS)
         if raw_payload:
             self._am.set_enabled(raw_payload)
-
+        # check for set
+        raw_payload = self._mqtt_if.get_msg(const.MQTT_TOPIC_SET_ALARM)
+        if raw_payload:
+            self._am.set_alarm(raw_payload)
 
     def _run_loop(self):
         """Run pygame event loop"""

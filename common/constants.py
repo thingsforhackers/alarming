@@ -17,8 +17,9 @@ SERVER_STATIC_DIR = os.environ.get("ALARM_STATIC_DIR",
 MQTT_CLIENT_ID = "id-cej-alarm"
 
 MQTT_TOPIC_TEST = os.path.join(MQTT_CLIENT_ID, "test")
-MQTT_TOPIC_UPDATE_ALARM = os.path.join(MQTT_CLIENT_ID, "update")
-MQTT_TOPIC_CYCLE_ALARMS = os.path.join(MQTT_CLIENT_ID, "cycle")
-MQTT_TOPIC_ENABLE_ALARMS = os.path.join(MQTT_CLIENT_ID, "enable")
+MQTT_TOPIC_UPDATE_ALARM = "/".join([MQTT_CLIENT_ID, "update"])
+MQTT_TOPIC_CYCLE_ALARMS = "/".join([MQTT_CLIENT_ID, "cycle"])
+MQTT_TOPIC_ENABLE_ALARMS = "/".join([MQTT_CLIENT_ID, "enable"])
+MQTT_TOPIC_SET_ALARM = "/".join([MQTT_CLIENT_ID, "set"])
 
 MQTT_BROKER = "192.168.1.151"

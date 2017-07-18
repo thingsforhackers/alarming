@@ -140,7 +140,6 @@ class AlarmMgr(object):
         """ handle update alarm requests """
         # @TODO - Add better (some) validation
         for key, value in update_info.items():
-            print(key, value)
             alarm = self._cfg.get(key, {})
             if len(alarm) == 0:
                 self._cfg[key] = alarm
@@ -152,7 +151,18 @@ class AlarmMgr(object):
         """ """
         flag = enabled.decode("utf-8")
         self._cfg["enabled"] = True if flag.lower() == "true" else False
-        print(self._cfg["enabled"])
+        self.parse_cfg()
+
+    def set_alarm(self, info):
+        """ """
+        info = info.decode("utf-8")
+        type_of_day, time_of_day = info.split("-")
+        alarm = self._cfg.get(type_of_day, {})
+        if len(alarm) == 0:
+            self._cfg[type_of_day] = alarm
+        alarm["enabled"] = True
+        alarm["time"] = time_of_day
+        self._cfg["enabled"] = True
         self.parse_cfg()
 
     def get_next_alarm(self):
